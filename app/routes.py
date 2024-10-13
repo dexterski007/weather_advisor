@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app
 import requests
-from .services import get_weather_data, suggest_activity, get_weather_forecast
+from .services import get_weather_data, suggest_activity, get_weather_forecast, get_activity_list
 
 main = Blueprint('main', __name__)
 
@@ -29,6 +29,22 @@ def get_forecast():
         return jsonify({"error": "city parameter is required."}), 400
 
     result = (get_weather_forecast(city, days))
+    if result.get('error'):
+        return jsonify(result), 400
+    return jsonify(result)
+
+from flask import Blueprint, request, jsonify, current_app
+import random
+
+main = Blueprint('main', __name__)
+
+@main.route('/activities', methods=['GET'])
+def get_activities():
+    weather = request.args.get('weather', None)
+    activity_type = request.args.get('type', 'outdoor')
+    limit = request.args.get('limit', 5)
+
+    result = get_activity_list(weather, activity_type, limit)
     if result.get('error'):
         return jsonify(result), 400
     return jsonify(result)

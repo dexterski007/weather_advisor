@@ -79,3 +79,30 @@ def get_weather_forecast(city, days):
         "city": city,
         "forecast": forecast_list
     })
+
+def get_activity_list(weather, activity_type, limit):
+
+    activities_json = current_app.config['ACTIVITIES_JSON']['weather_conditions']
+
+    if weather not in activities_json:
+        return {"error": f"No activities found for weather condition: {weather}"}
+
+    if activity_type == 'outdoor':
+        activity_list = activities_json[weather].get('outdoor_activities', [])
+    elif activity_type == 'indoor':
+        activity_list = activities_json[weather].get('indoor_activities', [])
+    else:
+        return ({"error": "Invalid type. Use 'outdoor' or 'indoor'."})
+
+    if not activity_list:
+        return {"error": f"No {activity_type} activities found for {weather} weather."}
+
+    limit = min(int(limit), len(activity_list))
+    random.shuffle(activity_list)
+    selected_activities = activity_list[:limit]
+
+    return ({
+        "weather": weather,
+        "type": activity_type,
+        "activities": selected_activities
+    })
