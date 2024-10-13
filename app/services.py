@@ -1,37 +1,81 @@
 import requests
 from flask import current_app
-from .utils import kelvin_to_celsius
-import json
+import random
 
 def get_weather_data(city):
     api_key = current_app.config['WEATHER_API_KEY']
-    url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}"
+    url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
     
     response = requests.get(url)
     if response.status_code != 200:
         return {"error": "Unable to fetch weather data"}
     
     data = response.json()
-    with open("data.json", "w") as export:
-        export.write(json.dumps(data))
     weather = {
         "description": data["weather"][0]["description"],
-        "temperature": kelvin_to_celsius(data["main"]["temp"]),
+        "temperature": data["main"]["temp"],
         "humidity": data["main"]["humidity"],
         "wind_speed": data["wind"]["speed"]
     }
     return weather
 
-def suggest_activity(weather_data):
-    temp = weather_data['temperature']
-    description = weather_data['description']
-    
-    # Simple recommendation based on weather
-    if 'rain' in description or 'storm' in description:
-        return "Indoor Gym"
-    elif temp > 298:  # If temperature is above ~25°C
-        return "Swimming"
-    elif temp < 288:  # If temperature is below ~15°C
-        return "Reading"
+def map_weather_condition(description):
+    if 'clear' in description or 'sun' in description:
+        return 'sunny'
+    elif 'rain' in description:
+        return 'rainy'
+    elif 'snow' in description:
+        return 'snowy'
+    elif 'wind' in description:
+        return 'windy'
+    elif 'storm' in description or 'thunderstorm' in description:
+        return 'stormy'
     else:
-        return "Running"
+        return 'cloudy'
+    
+def suggest_activity(weather_data):
+    description = weather_data['description']
+    temp = weather_data['temperature']
+    wind_speed = weather_data['wind_speed']
+
+    condition = map_weather_condition(description)
+    activities_json = current_app.config['ACTIVITIES_JSON']['weather_conditions']
+    
+    if temp > 298 and 'water' in activities_json[condition]:
+        activity_list = activities_json[condition]['outdoor_activities']
+    elif temp < 283 or wind_speed > 10:
+        activity_list = activities_json[condition]['indoor_activities']
+    else:
+        if 'outdoor_activities' in activities_json[condition]:
+            activity_list = activities_json[condition]['outdoor_activities']
+        else:
+            activity_list = activities_json[condition]['indoor_activities']
+
+    return random.choice(activity_list)
+
+def get_weather_forecast(city, days):
+    weather_api_key = current_app.config['WEATHER_API_KEY']
+    forecast_url = f"http://api.openweathermap.org/data/2.5/forecast?q={city}&cnt={int(days)}&appid={weather_api_key}&units=metric"
+    
+    response = requests.get(forecast_url)
+    
+    if response.status_code != 200:
+        return ({"error": "Unable to fetch weather data."})
+
+    forecast_data = response.json()
+
+    forecast_list = []
+    for forecast in forecast_data['list']:
+        forecast_item = {
+            "date": forecast['dt_txt'],
+            "temperature": forecast['main']['temp'],
+            "description": forecast['weather'][0]['description'],
+            "humidity": forecast['main']['humidity'],
+            "wind_speed": forecast['wind']['speed']
+        }
+        forecast_list.append(forecast_item)
+
+    return ({
+        "city": city,
+        "forecast": forecast_list
+    })

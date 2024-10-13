@@ -1,13 +1,11 @@
 #!/usr/bin/python3
 
 import requests
-
-
-API_KEY = '67030414f409f872728511xbm4cc6ab'
+from .utils import MAP_API_KEY
 
 
 def get_coordinates(location):
-    gmap_api = f'https://geocode.maps.co/search?q={location}&api_key={API_KEY}'
+    gmap_api = f'https://geocode.maps.co/search?q={location}&api_key={MAP_API_KEY}'
     req = requests.get(gmap_api)
     if req.status_code == 200:
         data = req.json()
