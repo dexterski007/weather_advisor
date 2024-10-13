@@ -91,8 +91,12 @@ def get_activity_list(weather, activity_type, limit):
         activity_list = activities_json[weather].get('outdoor_activities', [])
     elif activity_type == 'indoor':
         activity_list = activities_json[weather].get('indoor_activities', [])
+    elif activity_type == 'all':
+        outdoor_activities = activities_json[weather].get('outdoor_activities', [])
+        indoor_activities = activities_json[weather].get('indoor_activities', [])
+        activity_list = outdoor_activities + indoor_activities
     else:
-        return ({"error": "Invalid type. Use 'outdoor' or 'indoor'."})
+        return ({"error": "Invalid type. Use 'outdoor' or 'indoor' or 'all'."})
 
     if not activity_list:
         return {"error": f"No {activity_type} activities found for {weather} weather."}
@@ -106,3 +110,4 @@ def get_activity_list(weather, activity_type, limit):
         "type": activity_type,
         "activities": selected_activities
     })
+
