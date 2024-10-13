@@ -1,15 +1,20 @@
 import requests
 from flask import current_app
 import random
+from app import cache
 
+
+@cache.cached(timeout=300, key_prefix='weather_data_{city}')
 def get_weather_data(city):
+    '''Fetches weather data from OpenWeatherMap API'''
     api_key = current_app.config['WEATHER_API_KEY']
-    url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
-    
+    url = f"http://api.openweathermap.org/data/2.5/weather?\
+        q={city}&appid={api_key}&units=metric"
+
     response = requests.get(url)
     if response.status_code != 200:
         return {"error": "Unable to fetch weather data"}
-    
+
     data = response.json()
     weather = {
         "description": data["weather"][0]["description"],
@@ -19,7 +24,9 @@ def get_weather_data(city):
     }
     return weather
 
+
 def map_weather_condition(description):
+    '''Maps weather description to a weather condition'''
     if 'clear' in description or 'sun' in description:
         return 'sunny'
     elif 'rain' in description:
@@ -32,15 +39,18 @@ def map_weather_condition(description):
         return 'stormy'
     else:
         return 'cloudy'
-    
+
+
 def suggest_activity(weather_data):
+    '''Suggests an activity based on the weather data'''
     description = weather_data['description']
     temp = weather_data['temperature']
     wind_speed = weather_data['wind_speed']
 
     condition = map_weather_condition(description)
-    activities_json = current_app.config['ACTIVITIES_JSON']['weather_conditions']
-    
+    activities_json = current_app.\
+        config['ACTIVITIES_JSON']['weather_conditions']
+
     if temp > 298 and 'water' in activities_json[condition]:
         activity_list = activities_json[condition]['outdoor_activities']
     elif temp < 283 or wind_speed > 10:
@@ -53,12 +63,17 @@ def suggest_activity(weather_data):
 
     return random.choice(activity_list)
 
+
+@cache.cached(timeout=300, key_prefix='forecast_data_{city}')
 def get_weather_forecast(city, days):
+    '''Fetches weather forecast data from OpenWeatherMap API'''
     weather_api_key = current_app.config['WEATHER_API_KEY']
-    forecast_url = f"http://api.openweathermap.org/data/2.5/forecast?q={city}&cnt={int(days)}&appid={weather_api_key}&units=metric"
-    
+    forecast_url = f"http://api.openweathermap.org/data/2.5/forecast?\
+                    q={city}&cnt={int(days)}&\
+                        appid={weather_api_key}&units=metric"
+
     response = requests.get(forecast_url)
-    
+
     if response.status_code != 200:
         return ({"error": "Unable to fetch weather data."})
 
@@ -80,26 +95,33 @@ def get_weather_forecast(city, days):
         "forecast": forecast_list
     })
 
-def get_activity_list(weather, activity_type, limit):
 
-    activities_json = current_app.config['ACTIVITIES_JSON']['weather_conditions']
+def get_activity_list(weather, activity_type, limit):
+    '''Returns a list of activities based on the weather condition'''
+
+    activities_json = current_app.\
+        config['ACTIVITIES_JSON']['weather_conditions']
 
     if weather not in activities_json:
-        return {"error": f"No activities found for weather condition: {weather}"}
+        return {"error": f"No activities found for\
+                 weather condition: {weather}"}
 
     if activity_type == 'outdoor':
         activity_list = activities_json[weather].get('outdoor_activities', [])
     elif activity_type == 'indoor':
         activity_list = activities_json[weather].get('indoor_activities', [])
     elif activity_type == 'all':
-        outdoor_activities = activities_json[weather].get('outdoor_activities', [])
-        indoor_activities = activities_json[weather].get('indoor_activities', [])
+        outdoor_activities = activities_json[weather].\
+            get('outdoor_activities', [])
+        indoor_activities = activities_json[weather].\
+            get('indoor_activities', [])
         activity_list = outdoor_activities + indoor_activities
     else:
         return ({"error": "Invalid type. Use 'outdoor' or 'indoor' or 'all'."})
 
     if not activity_list:
-        return {"error": f"No {activity_type} activities found for {weather} weather."}
+        return {"error": f"No {activity_type} activities\
+                found for {weather} weather."}
 
     limit = min(int(limit), len(activity_list))
     random.shuffle(activity_list)
@@ -110,4 +132,3 @@ def get_activity_list(weather, activity_type, limit):
         "type": activity_type,
         "activities": selected_activities
     })
-

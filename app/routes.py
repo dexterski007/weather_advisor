@@ -1,13 +1,17 @@
 from flask import Blueprint, request, jsonify, current_app
 import requests
-from .services import get_weather_data, suggest_activity, get_weather_forecast, get_activity_list
+from .services import get_weather_data, suggest_activity, \
+                      get_weather_forecast, get_activity_list
+from .models import get_coordinates
 import random
 
 main = Blueprint('main', __name__)
 
+
 @main.route('/', methods=['GET'])
 def welcome():
     return jsonify({"message": "Welcome to the Weather Advisor API!"})
+
 
 @main.route('/recommend', methods=['GET'])
 def recommend_activity():
@@ -16,15 +20,16 @@ def recommend_activity():
         return jsonify({"error": "City parameter is required"}), 400
 
     weather_data = get_weather_data(city)
-    
+
     if 'error' in weather_data:
         return jsonify(weather_data), 400
 
     activity = suggest_activity(weather_data)
-    
+
     return jsonify({
         "activity": activity
     })
+
 
 @main.route('/weather/forecast', methods=['GET'])
 def get_forecast():
@@ -38,6 +43,7 @@ def get_forecast():
         return jsonify(result), 400
     return jsonify(result)
 
+
 @main.route('/activities', methods=['GET'])
 def get_activities():
     weather = request.args.get('weather', None)
@@ -48,6 +54,7 @@ def get_activities():
     if result.get('error'):
         return jsonify(result), 400
     return jsonify(result)
+
 
 @main.route('/activities/random', methods=['GET'])
 def get_random_activity():
@@ -64,6 +71,7 @@ def get_random_activity():
         "activity": choice
     })
 
+
 @main.route('/weather', methods=['GET'])
 def get_weather():
     city = request.args.get('city')
@@ -71,11 +79,12 @@ def get_weather():
         return jsonify({"error": "City parameter is required"}), 400
 
     weather_data = get_weather_data(city)
-    
+
     if 'error' in weather_data:
         return jsonify(weather_data), 400
 
     return jsonify(weather_data)
+
 
 @main.route('/activities/search', methods=['GET'])
 def activity_search():
@@ -88,4 +97,16 @@ def activity_search():
     if result.get('error'):
         return jsonify(result), 400
 
+    return jsonify(result)
+
+
+@main.route('/gecoding', methods=['GET'])
+def geocoding():
+    city = request.args.get('city')
+    if not city:
+        return jsonify({"error": "City parameter is required"}), 400
+
+    result = get_coordinates(city)
+    if result.get('error'):
+        return jsonify(result), 400
     return jsonify(result)
