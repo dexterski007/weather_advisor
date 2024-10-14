@@ -1,0 +1,10 @@
+{
+    "weather_conditions": {
+        "sunny": {
+            "outdoor_activities": [
+                "Frisbee"
+            ],
+            "indoor_activities": []
+        }
+    }
+}

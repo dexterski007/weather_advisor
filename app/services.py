@@ -2,6 +2,7 @@ import requests
 from flask import current_app
 import random
 from app import cache
+from .utils import get_combined_activities
 
 
 @cache.cached(timeout=300, key_prefix='weather_data_{city}')
@@ -48,8 +49,9 @@ def suggest_activity(weather_data):
     wind_speed = weather_data['wind_speed']
 
     condition = map_weather_condition(description)
-    activities_json = current_app.\
-        config['ACTIVITIES_JSON']['weather_conditions']
+    imported = get_combined_activities()
+    print(imported)
+    activities_json = imported['weather_activities']
 
     if temp > 298 and 'water' in activities_json[condition]:
         activity_list = activities_json[condition]['outdoor_activities']
@@ -99,8 +101,9 @@ def get_weather_forecast(city, days):
 def get_activity_list(weather, activity_type, limit):
     '''Returns a list of activities based on the weather condition'''
 
-    activities_json = current_app.\
-        config['ACTIVITIES_JSON']['weather_conditions']
+    imported = get_combined_activities()
+    print(imported)
+    activities_json = imported['weather_activities']
 
     if weather not in activities_json:
         return {"error": f"No activities found for\
