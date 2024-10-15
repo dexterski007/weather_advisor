@@ -1,5 +1,4 @@
 import os
-import json
 
 class Config:
     WEATHER_API_KEY = os.getenv('WEATHER_API_KEY', 'd3368120080f668ea9f5c0a56b994aa0')
@@ -10,15 +9,5 @@ class Config:
     CACHE_REDIS_DB = 0
     CACHE_REDIS_URL = f"redis://{CACHE_REDIS_HOST}:{CACHE_REDIS_PORT}/0"
     CACHE_DEFAULT_TIMEOUT = 300
-    USER_ACTIVITIES_FILE_PATH = os.getenv('USER_ACTIVITIES_FILE_PATH', 'user_activities.json')
-    ACTIVITIES_FILE_PATH = os.getenv('ACTIVITIES_JSON_FILE_PATH', 'activities.json')
-    try:
-        with open(ACTIVITIES_FILE_PATH, 'r') as file:
-            ACTIVITIES_JSON = json.load(file)
-    except FileNotFoundError:
-        print("Activities file not found.")
-    try:
-        with open(USER_ACTIVITIES_FILE_PATH, 'r') as file:
-            USER_ACTIVITIES_JSON = json.load(file)
-    except FileNotFoundError:
-        USER_ACTIVITIES_JSON = {"weather_conditions": {}}
+    
+    MONGO_URI = os.getenv('MONGO_URI', 'mongodb://127.0.0.1:27017/weather_db')
