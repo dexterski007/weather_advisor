@@ -3,8 +3,13 @@ from flask import current_app, request
 import random
 from app import cache, mongo
 from .utils import get_combined_activities
+import re
 
-@cache.cached(timeout=300, key_prefix='weather_data_{city}')
+def weather_data_key():
+    city = request.args.get('city')
+    return f"forecast_data_{city}"
+
+@cache.cached(timeout=300, key_prefix=weather_data_key)
 def get_weather_data(city):
     '''Fetches weather data from OpenWeatherMap API'''
     api_key = current_app.config['WEATHER_API_KEY']
@@ -93,14 +98,18 @@ def get_weather_forecast(city, days):
     }
 
 def get_activity_list(weather, activity_type, limit):
-    '''Returns a list of activities based on the weather condition'''
+    '''Returns a list of activities based on the weather condition and activity type'''
     activities = get_activities_from_db(weather)
 
     if isinstance(activities, dict) and "error" in activities:
         return activities
 
-    if not activities:
-        activity_type = 'all'
+    if weather is None:
+        all_activities = {"outdoor_activities": [], "indoor_activities": []}
+        for condition, acts in activities.items():
+            all_activities['outdoor_activities'] += acts.get('outdoor_activities', [])
+            all_activities['indoor_activities'] += acts.get('indoor_activities', [])
+        activities = all_activities
 
     if activity_type == 'outdoor':
         activity_list = activities.get('outdoor_activities', [])
@@ -114,32 +123,33 @@ def get_activity_list(weather, activity_type, limit):
         return {"error": "Invalid type. Use 'outdoor', 'indoor', or 'all'."}
 
     if not activity_list:
-        return {"error": f"No {activity_type} activities found for {weather} weather."}
+        return {"error": f"No {activity_type} activities found."}
 
     try:
-        limit = min(int(limit), len(activity_list))
+        if limit is not None:
+            limit = min(int(limit), len(activity_list))
+            random.shuffle(activity_list)
+            activity_list = activity_list[:limit]
     except ValueError:
         return {"error": "Invalid limit. Please provide a number."}
 
-    random.shuffle(activity_list)
-    selected_activities = activity_list[:limit]
-
     return {
-        "weather": weather,
+        "weather": weather if weather else "all",
         "type": activity_type,
-        "activities": selected_activities
+        "activities": activity_list
     }
 
-def get_activities_from_db(condition):
+
+def get_activities_from_db(condition=None):
     '''Fetches activities from the MongoDB collection based on the weather condition'''
     try:
         activities_doc = mongo.db.activities.find_one()
-        
+
         if activities_doc and "weather_conditions" in activities_doc:
             weather_conditions = activities_doc["weather_conditions"]
-            
-            if condition in weather_conditions:
-                return weather_conditions[condition]
+
+            if condition:
+                return weather_conditions.get(condition, {})
             else:
                 return weather_conditions
         else:
@@ -148,3 +158,100 @@ def get_activities_from_db(condition):
     except Exception as e:
         print(f"An error occurred while fetching activities: {str(e)}")
         return {"error": f"Database operation failed: {str(e)}"}
+
+
+def search_activities_in_db(activity_query, activity_type=None):
+    '''Performs a text search in MongoDB for the given activity query and activity type'''
+    try:
+        search_filter = {
+            "$text": {"$search": activity_query}
+        }
+        
+        activities = mongo.db.activities.find(search_filter, {"score": {"$meta": "textScore"}}).sort([("score", {"$meta": "textScore"})])
+        
+        activity_list = []
+        for activity_doc in activities:
+            for weather, condition in activity_doc.get('weather_conditions', {}).items():
+                if activity_type is None or activity_type == 'outdoor':
+                    for activity in condition.get('outdoor_activities', []):
+                        if re.search(r'\b' + re.escape(activity_query) + r'\b', activity, re.IGNORECASE):
+                            activity_list.append({
+                                "activity": activity,
+                                "type": "outdoor",
+                                "weather": weather
+                            })
+                
+                if activity_type is None or activity_type == 'indoor':
+                    for activity in condition.get('indoor_activities', []):
+                        if re.search(r'\b' + re.escape(activity_query) + r'\b', activity, re.IGNORECASE):
+                            activity_list.append({
+                                "activity": activity,
+                                "type": "indoor",
+                                "weather": weather
+                            })
+        
+        return activity_list if activity_list else None
+    
+    except Exception as e:
+        print(f"Error during search: {str(e)}")
+        return {"error": f"Search operation failed: {str(e)}"}
+
+
+def add_activity_to_db(activity, weather, activity_type):
+    '''Adds an activity to the appropriate weather condition in the MongoDB collection'''
+    try:
+        activities_doc = mongo.db.activities.find_one()
+
+        if not activities_doc or "weather_conditions" not in activities_doc:
+            return {"error": "Activities document not found."}
+
+        # Add the activity to the corresponding type (outdoor/indoor) and weather condition
+        if weather in activities_doc["weather_conditions"]:
+            if activity_type == 'outdoor':
+                activities_doc["weather_conditions"][weather]['outdoor_activities'].append(activity)
+            elif activity_type == 'indoor':
+                activities_doc["weather_conditions"][weather]['indoor_activities'].append(activity)
+        else:
+            return {"error": f"Weather condition '{weather}' not found."}
+
+        # Update the document in MongoDB
+        mongo.db.activities.replace_one({"_id": activities_doc["_id"]}, activities_doc)
+        return {"success": f"Activity '{activity}' added to {weather} weather as {activity_type}."}
+
+    except Exception as e:
+        return {"error": f"Failed to add activity: {str(e)}"}
+
+
+def reindex_database():
+    '''Forces MongoDB to reindex the activities collection'''
+    try:
+        mongo.db.activities.reIndex()
+        print("Database reindexing successful.")
+    except Exception as e:
+        print(f"Error during reindexing: {str(e)}")
+
+def remove_activity_from_db(activity, weather, activity_type):
+    '''Removes an activity from the appropriate weather condition in the MongoDB collection'''
+    try:
+        activities_doc = mongo.db.activities.find_one()
+
+        if not activities_doc or "weather_conditions" not in activities_doc:
+            return {"error": "Activities document not found."}
+
+        # Remove the activity from the corresponding type (outdoor/indoor) and weather condition
+        if weather in activities_doc["weather_conditions"]:
+            if activity_type == 'outdoor' and activity in activities_doc["weather_conditions"][weather]['outdoor_activities']:
+                activities_doc["weather_conditions"][weather]['outdoor_activities'].remove(activity)
+            elif activity_type == 'indoor' and activity in activities_doc["weather_conditions"][weather]['indoor_activities']:
+                activities_doc["weather_conditions"][weather]['indoor_activities'].remove(activity)
+            else:
+                return {"error": f"Activity '{activity}' not found in {activity_type} activities for {weather} weather."}
+        else:
+            return {"error": f"Weather condition '{weather}' not found."}
+
+        # Update the document in MongoDB
+        mongo.db.activities.replace_one({"_id": activities_doc["_id"]}, activities_doc)
+        return {"success": f"Activity '{activity}' removed from {weather} weather as {activity_type}."}
+
+    except Exception as e:
+        return {"error": f"Failed to remove activity: {str(e)}"}

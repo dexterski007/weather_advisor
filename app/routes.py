@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app
 import random
-from .services import get_weather_data, suggest_activity, get_weather_forecast, get_activity_list
+from .services import get_weather_data, suggest_activity, get_weather_forecast, get_activity_list, search_activities_in_db, add_activity_to_db, remove_activity_from_db, reindex_database
 from .models import get_coordinates
 from . import mongo
 
@@ -42,10 +42,11 @@ def get_forecast():
 @main.route('/activities', methods=['GET'])
 def get_activities():
     weather = request.args.get('weather', None)
-    activity_type = request.args.get('type', 'outdoor')
-    limit = request.args.get('limit', 5)
+    activity_type = request.args.get('type', 'all')
+    limit = request.args.get('limit', None)
 
     result = get_activity_list(weather, activity_type, limit)
+
     if result.get('error'):
         return jsonify(result), 400
     return jsonify(result)
@@ -80,16 +81,18 @@ def get_weather():
 
 @main.route('/activities/search', methods=['GET'])
 def activity_search():
-    activity = request.args.get('activity')
-    type = request.args.get('type')
-    if not activity:
-        return jsonify({"error": "Activity parameter is required"}), 400
+    activity_query = request.args.get('activity')
+    activity_type = request.args.get('type', None)  # Optional: outdoor, indoor, or all
 
-    result = get_activity_list(activity, type, 10)
-    if result.get('error'):
-        return jsonify(result), 400
+    if not activity_query:
+        return jsonify({"error": "Activity query parameter is required"}), 400
 
-    return jsonify(result)
+    search_result = search_activities_in_db(activity_query, activity_type)
+
+    if not search_result:
+        return jsonify({"error": "No matching activities found."}), 404
+
+    return jsonify(search_result)
 
 @main.route('/geocoding', methods=['GET'])
 def geocoding():
@@ -102,32 +105,38 @@ def geocoding():
         return jsonify(result), 400
     return jsonify(result)
 
-@main.route('/activities', methods=['POST'])
+@main.route('/activities/add', methods=['POST'])
 def add_activity():
-    try:
-        new_activity = request.get_json()
+    new_activity = request.json.get('activity')
+    weather = request.json.get('weather')
+    activity_type = request.json.get('type')
 
-        weather = new_activity.get('weather')
-        activity_type = new_activity.get('type')
-        activity_name = new_activity.get('activity')
+    if not new_activity or not weather or not activity_type:
+        return jsonify({"error": "Missing required fields: activity, weather, type"}), 400
 
-        if not all([weather, activity_type, activity_name]):
-            return jsonify({"error": "Missing weather, type, or activity field."}), 400
+    result = add_activity_to_db(new_activity, weather, activity_type)
+    
+    if 'error' in result:
+        return jsonify(result), 400
 
-        mongo.db.user_activities.update_one(
-            {'weather': weather},
-            {
-                '$setOnInsert': {
-                    'outdoor_activities': [],
-                    'indoor_activities': []
-                },
-                '$addToSet': {f"{activity_type}_activities": activity_name}
-            },
-            upsert=True
-        )
+    reindex_database()
 
-        return jsonify({"message": "User activity added successfully!"}), 201
+    return jsonify(result)
 
-    except Exception as e:
-        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+@main.route('/activities/remove', methods=['POST'])
+def remove_activity():
+    activity = request.json.get('activity')
+    weather = request.json.get('weather')
+    activity_type = request.json.get('type')
 
+    if not activity or not weather or not activity_type:
+        return jsonify({"error": "Missing required fields: activity, weather, type"}), 400
+
+    result = remove_activity_from_db(activity, weather, activity_type)
+    
+    if 'error' in result:
+        return jsonify(result), 400
+
+    reindex_database()
+
+    return jsonify(result)
