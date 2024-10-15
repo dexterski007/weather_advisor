@@ -36,7 +36,6 @@ def get_coordinates(location):
     if not geocoding_data:
         return {"error": "No geocoding data found for the given location."}
     
-    # Assuming the API returns a list of results, we'll take the first one
     if isinstance(geocoding_data, list) and geocoding_data:
         first_result = geocoding_data[0]
         return {
