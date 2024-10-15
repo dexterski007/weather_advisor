@@ -53,17 +53,40 @@ def get_activities():
 
 @main.route('/activities/random', methods=['GET'])
 def get_random_activity():
-    weather = request.args.get('weather', None)
-    activity_type = request.args.get('type', 'outdoor')
-    limit = request.args.get('limit', 10)
+    weather = request.args.get('weather')
+    activity_type = request.args.get('type')
 
-    result = get_activity_list(weather, activity_type, limit)
-    if result.get('error'):
-        return jsonify(result), 400
+    query = {}
 
-    choice = random.choice(result['activities'])
+    if weather:
+        query['weather_conditions.' + weather] = {'$exists': True}
+
+    matching_docs = list(mongo.db.activities.find(query))
+
+    if not matching_docs:
+        return jsonify({"error": "No activities found matching the criteria"}), 400
+
+    chosen_doc = random.choice(matching_docs)
+
+    if not weather:
+        weather = random.choice(list(chosen_doc['weather_conditions'].keys()))
+
+    if not activity_type:
+        available_types = [key for key in chosen_doc['weather_conditions'][weather].keys() if key.endswith('_activities')]
+        activity_type = random.choice(available_types)
+    else:
+        activity_type = activity_type + '_activities'
+
+    try:
+        activities = chosen_doc['weather_conditions'][weather][activity_type]
+        chosen_activity = random.choice(activities)
+    except KeyError:
+        return jsonify({"error": f"No {activity_type} found for {weather} weather"}), 400
+
     return jsonify({
-        "activity": choice
+        "activity": chosen_activity,
+        "weather": weather,
+        "type": activity_type.replace('_activities', '')
     })
 
 @main.route('/weather', methods=['GET'])
@@ -82,7 +105,7 @@ def get_weather():
 @main.route('/activities/search', methods=['GET'])
 def activity_search():
     activity_query = request.args.get('activity')
-    activity_type = request.args.get('type', None)  # Optional: outdoor, indoor, or all
+    activity_type = request.args.get('type', None)
 
     if not activity_query:
         return jsonify({"error": "Activity query parameter is required"}), 400
