@@ -1,5 +1,5 @@
 import requests
-from flask import current_app
+from flask import current_app, request
 import random
 from app import cache, mongo
 from .utils import get_combined_activities
@@ -56,7 +56,14 @@ def suggest_activity(weather_data):
 
     return random.choice(activity_list) if activity_list else None
 
-@cache.cached(timeout=300, key_prefix='forecast_data_{city}')
+
+def make_cache_key():
+    city = request.args.get('city')
+    days = request.args.get('days')
+    return f"forecast_data_{city}_{days}"
+
+
+@cache.cached(timeout=300, key_prefix=make_cache_key)
 def get_weather_forecast(city, days):
     '''Fetches weather forecast data from OpenWeatherMap API'''
     weather_api_key = current_app.config['WEATHER_API_KEY']
@@ -84,8 +91,6 @@ def get_weather_forecast(city, days):
         "city": city,
         "forecast": forecast_list
     }
-
-import random
 
 def get_activity_list(weather, activity_type, limit):
     '''Returns a list of activities based on the weather condition'''
