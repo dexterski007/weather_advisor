@@ -1,20 +1,48 @@
 #!/usr/bin/python3
 
 import requests
-from flask import current_app
+from flask import current_app, request
+from app import cache
 
+
+def geocoding_data_key():
+    city = request.args.get('city')
+    return f"geocoding_data_{city}"
+
+@cache.cached(timeout=300, key_prefix=geocoding_data_key)
 def get_coordinates(location):
-    '''Fetches the coordinates of a location using the Google Maps API'''
+    '''Fetches the coordinates of a location using the geocode.maps.co API'''
     if not current_app:
         raise RuntimeError("No application context found.")
     
-    MAP_API_KEY = current_app.config['MAP_API_KEY']
-    gmap_api = f'https://geocode.maps.co/search?q={location}&api_key={MAP_API_KEY}'
+    MAP_API_KEY = current_app.config.get('MAP_API_KEY')
+    if not MAP_API_KEY:
+        raise ValueError("MAP_API_KEY not found in application configuration.")
     
-    response = requests.get(gmap_api)
+    gmap_api = f'https://geocode.maps.co/search'
+    params = {
+        'q': location,
+        'api_key': MAP_API_KEY
+    }
     
-    if response.status_code != 200:
-        return {"error": "Unable to fetch geocoding data."}
-
+    try:
+        response = requests.get(gmap_api, params=params, timeout=10)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        return {"error": f"Error fetching geocoding data: {str(e)}"}
+    
     geocoding_data = response.json()
-    return geocoding_data
+    
+    if not geocoding_data:
+        return {"error": "No geocoding data found for the given location."}
+    
+    # Assuming the API returns a list of results, we'll take the first one
+    if isinstance(geocoding_data, list) and geocoding_data:
+        first_result = geocoding_data[0]
+        return {
+            "lat": first_result.get('lat'),
+            "lon": first_result.get('lon')
+        }
+    else:
+        return {"error": "Unexpected response format from geocoding API."}
+
