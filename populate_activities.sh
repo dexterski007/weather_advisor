@@ -175,6 +175,8 @@ JSON_DATA='{
   }
 }'
 
+sudo apt update && apt install mongodb-org redis-server -y
+
 MONGO_URI="mongodb://localhost:27017"
 DB_NAME="weather_db"
 COLLECTION_NAME="activities"
