@@ -3,8 +3,10 @@ from flask_caching import Cache
 from flask_pymongo import PyMongo
 from config import Config
 
+
 cache = Cache()
 mongo = PyMongo()
+
 
 def create_app():
     '''Creates a Flask app instance'''
@@ -21,6 +23,7 @@ def create_app():
     app.register_blueprint(main)
 
     return app
+
 
 def create_indexes():
     """Create necessary indexes for the MongoDB collection"""

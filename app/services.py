@@ -5,15 +5,18 @@ from app import cache, mongo
 from .utils import get_combined_activities
 import re
 
+
 def weather_data_key():
     city = request.args.get('city')
     return f"forecast_data_{city}"
+
 
 @cache.cached(timeout=300, key_prefix=weather_data_key)
 def get_weather_data(city):
     '''Fetches weather data from OpenWeatherMap API'''
     api_key = current_app.config['WEATHER_API_KEY']
-    url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
+    url = f"http://api.openweathermap.org/data/2.5/\
+        weather?q={city}&appid={api_key}&units=metric"
 
     response = requests.get(url)
     if response.status_code != 200:
@@ -27,6 +30,7 @@ def get_weather_data(city):
         "wind_speed": data["wind"]["speed"]
     }
     return weather
+
 
 def map_weather_condition(description):
     '''Maps weather description to a weather condition'''
@@ -43,6 +47,7 @@ def map_weather_condition(description):
     else:
         return 'cloudy'
 
+
 def suggest_activity(weather_data):
     '''Suggests an activity based on the weather data'''
     description = weather_data['description']
@@ -57,7 +62,8 @@ def suggest_activity(weather_data):
     elif temp < 283 or wind_speed > 10:
         activity_list = activities_json.get('indoor_activities', [])
     else:
-        activity_list = activities_json.get('outdoor_activities', activities_json.get('indoor_activities', []))
+        activity_list = activities_json.get(
+            'outdoor_activities', activities_json.get('indoor_activities', []))
 
     return random.choice(activity_list) if activity_list else None
 
@@ -72,7 +78,8 @@ def make_cache_key():
 def get_weather_forecast(city, days):
     '''Fetches weather forecast data from OpenWeatherMap API'''
     weather_api_key = current_app.config['WEATHER_API_KEY']
-    forecast_url = f"http://api.openweathermap.org/data/2.5/forecast?q={city}&cnt={int(days)}&appid={weather_api_key}&units=metric"
+    forecast_url = f"http://api.openweathermap.org/data/2.5/\
+        forecast?q={city}&cnt={int(days)}&appid={weather_api_key}&units=metric"
 
     response = requests.get(forecast_url)
 
@@ -97,8 +104,10 @@ def get_weather_forecast(city, days):
         "forecast": forecast_list
     }
 
+
 def get_activity_list(weather, activity_type, limit):
-    '''Returns a list of activities based on the weather condition and activity type'''
+    '''Returns a list of activities based on
+    the weather condition and activity type'''
     activities = get_activities_from_db(weather)
 
     if isinstance(activities, dict) and "error" in activities:
@@ -107,8 +116,10 @@ def get_activity_list(weather, activity_type, limit):
     if weather is None:
         all_activities = {"outdoor_activities": [], "indoor_activities": []}
         for condition, acts in activities.items():
-            all_activities['outdoor_activities'] += acts.get('outdoor_activities', [])
-            all_activities['indoor_activities'] += acts.get('indoor_activities', [])
+            all_activities['outdoor_activities'] += \
+                acts.get('outdoor_activities', [])
+            all_activities['indoor_activities'] += \
+                acts.get('indoor_activities', [])
         activities = all_activities
 
     if activity_type == 'outdoor':
@@ -141,7 +152,8 @@ def get_activity_list(weather, activity_type, limit):
 
 
 def get_activities_from_db(condition=None):
-    '''Fetches activities from the MongoDB collection based on the weather condition'''
+    '''Fetches activities from the MongoDB
+    collection based on the weather condition'''
     try:
         activities_doc = mongo.db.activities.find_one()
 
@@ -161,37 +173,45 @@ def get_activities_from_db(condition=None):
 
 
 def search_activities_in_db(activity_query, activity_type=None):
-    '''Performs a text search in MongoDB for the given activity query and activity type'''
+    '''Performs a text search in MongoDB for
+    the given activity query and activity type'''
     try:
         search_filter = {
             "$text": {"$search": activity_query}
         }
-        
-        activities = mongo.db.activities.find(search_filter, {"score": {"$meta": "textScore"}}).sort([("score", {"$meta": "textScore"})])
-        
+
+        activities = mongo.db.activities.find(search_filter,
+                                              {"score":
+                                               {"$meta": "textScore"}}).sort(
+                                                   [("score",
+                                                     {"$meta": "textScore"})])
+
         activity_list = []
         for activity_doc in activities:
-            for weather, condition in activity_doc.get('weather_conditions', {}).items():
+            for weather, condition in \
+               activity_doc.get('weather_conditions', {}).items():
                 if activity_type is None or activity_type == 'outdoor':
                     for activity in condition.get('outdoor_activities', []):
-                        if re.search(r'\b' + re.escape(activity_query) + r'\b', activity, re.IGNORECASE):
+                        if re.search(r'\b' + re.escape(activity_query) +
+                                     r'\b', activity, re.IGNORECASE):
                             activity_list.append({
                                 "activity": activity,
                                 "type": "outdoor",
                                 "weather": weather
                             })
-                
+
                 if activity_type is None or activity_type == 'indoor':
                     for activity in condition.get('indoor_activities', []):
-                        if re.search(r'\b' + re.escape(activity_query) + r'\b', activity, re.IGNORECASE):
+                        if re.search(r'\b' + re.escape(activity_query) +
+                                     r'\b', activity, re.IGNORECASE):
                             activity_list.append({
                                 "activity": activity,
                                 "type": "indoor",
                                 "weather": weather
                             })
-        
+
         return activity_list if activity_list else None
-    
+
     except Exception as e:
         print(f"Error during search: {str(e)}")
         return {"error": f"Search operation failed: {str(e)}"}

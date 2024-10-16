@@ -1,4 +1,5 @@
 #!/bin/bash
+#bash script to read JSON data and populate MongoDB with activities based on weather conditions
 
 JSON_DATA='{
   "weather_conditions": {

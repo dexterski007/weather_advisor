@@ -1,15 +1,19 @@
 from flask import Blueprint, request, jsonify, current_app
 import random
-from .services import get_weather_data, suggest_activity, get_weather_forecast, get_activity_list, search_activities_in_db
+from .services import get_weather_data, suggest_activity, \
+    get_weather_forecast, get_activity_list, search_activities_in_db
 from .models import get_coordinates
 from . import mongo
 from pymongo.errors import PyMongoError
 
+
 main = Blueprint('main', __name__)
+
 
 @main.route('/', methods=['GET'])
 def welcome():
     return jsonify({"message": "Welcome to the Weather Advisor API!"})
+
 
 @main.route('/recommend', methods=['GET'])
 def recommend_activity():
@@ -28,6 +32,7 @@ def recommend_activity():
         "activity": activity
     })
 
+
 @main.route('/weather/forecast', methods=['GET'])
 def get_forecast():
     city = request.args.get('city')
@@ -40,6 +45,7 @@ def get_forecast():
         return jsonify(result), 400
     return jsonify(result)
 
+
 @main.route('/activities', methods=['GET'])
 def get_activities():
     weather = request.args.get('weather', None)
@@ -51,6 +57,7 @@ def get_activities():
     if result.get('error'):
         return jsonify(result), 400
     return jsonify(result)
+
 
 @main.route('/activities/random', methods=['GET'])
 def get_random_activity():
@@ -65,7 +72,8 @@ def get_random_activity():
     matching_docs = list(mongo.db.activities.find(query))
 
     if not matching_docs:
-        return jsonify({"error": "No activities found matching the criteria"}), 400
+        return jsonify({"error":
+                        "No activities found matching the criteria"}), 400
 
     chosen_doc = random.choice(matching_docs)
 
@@ -73,7 +81,9 @@ def get_random_activity():
         weather = random.choice(list(chosen_doc['weather_conditions'].keys()))
 
     if not activity_type:
-        available_types = [key for key in chosen_doc['weather_conditions'][weather].keys() if key.endswith('_activities')]
+        available_types = [key for key in
+                           chosen_doc['weather_conditions'][weather].keys()
+                           if key.endswith('_activities')]
         activity_type = random.choice(available_types)
     else:
         activity_type = activity_type + '_activities'
@@ -82,13 +92,16 @@ def get_random_activity():
         activities = chosen_doc['weather_conditions'][weather][activity_type]
         chosen_activity = random.choice(activities)
     except KeyError:
-        return jsonify({"error": f"No {activity_type} found for {weather} weather"}), 400
+        return jsonify({"error":
+                        f"No {activity_type} found for\
+                        {weather} weather"}), 400
 
     return jsonify({
         "activity": chosen_activity,
         "weather": weather,
         "type": activity_type.replace('_activities', '')
     })
+
 
 @main.route('/weather', methods=['GET'])
 def get_weather():
@@ -102,6 +115,7 @@ def get_weather():
         return jsonify(weather_data), 400
 
     return jsonify(weather_data)
+
 
 @main.route('/activities/search', methods=['GET'])
 def activity_search():
@@ -118,6 +132,7 @@ def activity_search():
 
     return jsonify(search_result)
 
+
 @main.route('/geocoding', methods=['GET'])
 def geocoding():
     city = request.args.get('city')
@@ -129,60 +144,69 @@ def geocoding():
         return jsonify(result), 400
     return jsonify(result)
 
+
 @main.route('/activities/add', methods=['POST'])
 def add_activity():
     data = request.json
-    if not data or 'weather' not in data or 'type' not in data or 'activity' not in data:
+    if not data or 'weather' not in data or\
+       'type' not in data or 'activity' not in data:
         return jsonify({"error": "Invalid data format"}), 400
-    
+
     weather = data['weather']
     activity_type = data['type'] + '_activities'
     activity = data['activity']
-    
+
     try:
-        result = mongo.db.activities.find_one({"weather_conditions." + weather: {"$exists": True}})
-        
+        result = mongo.db.activities.find_one({"weather_conditions." +
+                                               weather: {"$exists": True}})
+
         if result:
             update_result = mongo.db.activities.update_one(
                 {"weather_conditions." + weather: {"$exists": True}},
-                {"$addToSet": {f"weather_conditions.{weather}.{activity_type}": activity}}
+                {"$addToSet":
+                 {f"weather_conditions.{weather}.{activity_type}":
+                  activity}}
             )
         else:
             update_result = mongo.db.activities.update_one(
                 {},
-                {"$set": {f"weather_conditions.{weather}": {activity_type: [activity]}}},
+                {"$set":
+                 {f"weather_conditions.{weather}":
+                  {activity_type: [activity]}}},
                 upsert=True
             )
-        
+
         if update_result.modified_count > 0 or update_result.upserted_id:
             return jsonify({"message": "Activity added successfully"}), 201
         else:
             return jsonify({"message": "Activity already exists"}), 200
-    
+
     except PyMongoError as e:
         return jsonify({"error": str(e)}), 500
+
 
 @main.route('/activities/remove', methods=['DELETE'])
 def remove_activity():
     data = request.json
-    if not data or 'weather' not in data or 'type' not in data or 'activity' not in data:
+    if not data or 'weather' not in data or \
+       'type' not in data or 'activity' not in data:
         return jsonify({"error": "Invalid data format"}), 400
-    
+
     weather = data['weather']
     activity_type = data['type'] + '_activities'
     activity = data['activity']
-    
+
     try:
         result = mongo.db.activities.update_one(
             {"weather_conditions." + weather: {"$exists": True}},
-            {"$pull": {f"weather_conditions.{weather}.{activity_type}": activity}}
+            {"$pull":
+             {f"weather_conditions.{weather}.{activity_type}": activity}}
         )
-        
+
         if result.modified_count > 0:
             return jsonify({"message": "Activity removed successfully"}), 200
         else:
             return jsonify({"message": "Activity not found"}), 404
-    
+
     except PyMongoError as e:
         return jsonify({"error": str(e)}), 500
-    
