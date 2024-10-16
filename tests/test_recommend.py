@@ -68,4 +68,5 @@ class TestRecommendRoute(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    '''Run the tests'''
     unittest.main()

@@ -12,11 +12,13 @@ main = Blueprint('main', __name__)
 
 @main.route('/', methods=['GET'])
 def welcome():
+    """Welcome message"""
     return jsonify({"message": "Welcome to the Weather Advisor API!"})
 
 
 @main.route('/recommend', methods=['GET'])
 def recommend_activity():
+    '''Recommends an activity based on the weather in a city'''
     city = request.args.get('city')
     if not city:
         return jsonify({"error": "City parameter is required"}), 400
@@ -35,6 +37,7 @@ def recommend_activity():
 
 @main.route('/weather/forecast', methods=['GET'])
 def get_forecast():
+    ''' Fetches weather forecast for a city '''
     city = request.args.get('city')
     days = request.args.get('days', 3)
     if not city:
@@ -48,6 +51,7 @@ def get_forecast():
 
 @main.route('/activities', methods=['GET'])
 def get_activities():
+    ''' Fetches a list of activities based on weather and type '''
     weather = request.args.get('weather', None)
     activity_type = request.args.get('type', 'all')
     limit = request.args.get('limit', None)
@@ -61,6 +65,7 @@ def get_activities():
 
 @main.route('/activities/random', methods=['GET'])
 def get_random_activity():
+    ''' Fetches a random activity based on weather and type '''
     weather = request.args.get('weather')
     activity_type = request.args.get('type')
 
@@ -105,6 +110,7 @@ def get_random_activity():
 
 @main.route('/weather', methods=['GET'])
 def get_weather():
+    ''' Fetches weather data for a city '''
     city = request.args.get('city')
     if not city:
         return jsonify({"error": "City parameter is required"}), 400
@@ -119,6 +125,7 @@ def get_weather():
 
 @main.route('/activities/search', methods=['GET'])
 def activity_search():
+    '''Searches for activities in the database'''
     activity_query = request.args.get('activity')
     activity_type = request.args.get('type', None)
 
@@ -135,6 +142,7 @@ def activity_search():
 
 @main.route('/geocoding', methods=['GET'])
 def geocoding():
+    ''' Fetches the coordinates of a location '''
     city = request.args.get('city')
     if not city:
         return jsonify({"error": "City parameter is required"}), 400
@@ -147,6 +155,7 @@ def geocoding():
 
 @main.route('/activities/add', methods=['POST'])
 def add_activity():
+    '''Adds an activity to the database'''
     data = request.json
     if not data or 'weather' not in data or\
        'type' not in data or 'activity' not in data:
@@ -187,6 +196,7 @@ def add_activity():
 
 @main.route('/activities/remove', methods=['DELETE'])
 def remove_activity():
+    '''Removes an activity from the database'''
     data = request.json
     if not data or 'weather' not in data or \
        'type' not in data or 'activity' not in data:

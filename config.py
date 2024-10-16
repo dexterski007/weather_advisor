@@ -2,6 +2,7 @@ import os
 
 
 class Config:
+    '''Set Flask configuration variables'''
     WEATHER_API_KEY = os.getenv('WEATHER_API_KEY',
                                 'd3368120080f668ea9f5c0a56b994aa0')
     MAP_API_KEY = os.getenv('MAP_API_KEY',

@@ -7,6 +7,7 @@ import re
 
 
 def weather_data_key():
+    '''Generates a cache key based on the query parameters'''
     city = request.args.get('city')
     return f"forecast_data_{city}"
 
@@ -69,6 +70,7 @@ def suggest_activity(weather_data):
 
 
 def make_cache_key():
+    '''Generates a cache key based on the query parameters'''
     city = request.args.get('city')
     days = request.args.get('days')
     return f"forecast_data_{city}_{days}"

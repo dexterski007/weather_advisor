@@ -6,6 +6,7 @@ from app import cache
 
 
 def geocoding_data_key():
+    '''Generates a cache key based on the query parameters'''
     city = request.args.get('city')
     return f"geocoding_data_{city}"
 

@@ -2,6 +2,7 @@ from flask import Flask
 from flask_caching import Cache
 from flask_pymongo import PyMongo
 from config import Config
+from flask_cors import CORS
 
 
 cache = Cache()
@@ -11,6 +12,9 @@ mongo = PyMongo()
 def create_app():
     '''Creates a Flask app instance'''
     app = Flask(__name__)
+    CORS(app, resources={r"/*": {"origins": ["http://localhost:8080",
+                                             "http://127.0.0.1:8080",
+                                             "http://bmworks.tech:8080"]}})
     app.config.from_object(Config)
 
     cache.init_app(app)
