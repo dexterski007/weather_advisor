@@ -16,10 +16,11 @@ def weather_data_key():
 def get_weather_data(city):
     '''Fetches weather data from OpenWeatherMap API'''
     api_key = current_app.config['WEATHER_API_KEY']
-    url = f"http://api.openweathermap.org/data/2.5/\
-        weather?q={city}&appid={api_key}&units=metric"
+    url = f"http://api.openweathermap.org/data/2.5/weather?q={
+        city}&appid={api_key}&units=metric"
 
     response = requests.get(url)
+    print(response)
     if response.status_code != 200:
         return {"error": "Unable to fetch weather data"}
 
@@ -80,8 +81,8 @@ def make_cache_key():
 def get_weather_forecast(city, days):
     '''Fetches weather forecast data from OpenWeatherMap API'''
     weather_api_key = current_app.config['WEATHER_API_KEY']
-    forecast_url = f"http://api.openweathermap.org/data/2.5/\
-        forecast?q={city}&cnt={int(days)}&appid={weather_api_key}&units=metric"
+    forecast_url = f"http://api.openweathermap.org/data/2.5/forecast?q={
+        city}&cnt={int(days)}&appid={weather_api_key}&units=metric"
 
     response = requests.get(forecast_url)
 

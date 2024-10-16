@@ -4,9 +4,9 @@ import os
 class Config:
     '''Set Flask configuration variables'''
     WEATHER_API_KEY = os.getenv('WEATHER_API_KEY',
-                                'your_api_key_here')
+                                'put_your_openweathermap_api_key_here')
     MAP_API_KEY = os.getenv('MAP_API_KEY',
-                            'your_api_key_here')
+                            'put_your_geocode_maps_co_api_key_here')
     CACHE_TYPE = "RedisCache"
     CACHE_REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
     CACHE_REDIS_PORT = os.getenv("REDIS_PORT", 6379)
