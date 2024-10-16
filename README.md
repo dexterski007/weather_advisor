@@ -1,10 +1,13 @@
 # Weather Advisor API
 Weather Advisor is a Flask-based API service that recommends activities based on current weather conditions in a specified city. The API also offers endpoints for retrieving weather forecasts, geolocation data, and managing a collection of activities.
+It is my final portfolio project for ALX Software Engineering Track.
 
 ## Demo
 
 A live demo of the Weather Advisor API is accessible at: [bmworks.tech](http://bmworks.tech:5000/)
 A status frontend is available at: [bmworks.tech](http://bmworks.tech:8080/)
+
+![firefox_2024-10-16_22-39-12](https://github.com/user-attachments/assets/1798e0ab-5a71-495d-963d-067e580ba593)
 
 ## Table of Contents
 
@@ -40,7 +43,7 @@ To run this project locally, follow these steps:
     -   `git clone https://github.com/dexterski007/weather_advisor`
     -   `cd weather_advisor`
   2. Install dependencies:
-    -   `sudo bash populate_activities.sh`
+    -   `sudo bash populate_activities.sh` (for debian based distros)
   3. Set up environment variables in a `.env` file:
     -   `python3 -m venv venv`
     -   `source venv/bin/activate`
