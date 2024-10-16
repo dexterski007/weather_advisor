@@ -25,12 +25,14 @@ def get_combined_activities():
 
     for weather, activities in user_activities['weather_conditions'].items():
         if weather in combined_activities['weather_conditions']:
-            combined_activities['weather_conditions']\
-            [weather]['outdoor_activities'].extend(
+            combined_activities[
+                'weather_conditions'][weather][
+                    'outdoor_activities'].extend(
                 activities.get('outdoor_activities', [])
             )
-            combined_activities['weather_conditions']\
-            [weather]['indoor_activities'].extend(
+            combined_activities[
+                'weather_conditions'][weather][
+                    'indoor_activities'].extend(
                 activities.get('indoor_activities', [])
             )
         else:
