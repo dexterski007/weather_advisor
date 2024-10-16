@@ -44,14 +44,15 @@ To run this project locally, follow these steps:
     -   `cd weather_advisor`
   2. Install dependencies:
     -   `sudo bash populate_activities.sh` (for debian based distros)
-  3. Set up environment variables in a `.env` file:
+  3. Set up environment:
     -   `python3 -m venv venv`
     -   `source venv/bin/activate`
   4. Install python requirements:
     -   `pip install -r requirements.txt`
-  5. Run the Flask application:
+  5. Insert your own API keys in config.py
+  6. Run the Flask application:
     -   `python run.py`
-  6. Access the API at `http://127.0.0.1:5000/`.
+  7. Access the API at `http://127.0.0.1:5000/`.
 
 ## API Endpoints
 
@@ -60,6 +61,13 @@ To run this project locally, follow these steps:
   - **GET** `/`
   - Returns a welcome message for the API.
   - **Response**:
+  ```json
+  {
+    "weather": "sunny",
+    "type": "outdoor",
+    "activity": "Beach Volleyball"
+  }
+  ```
 ### Recommend Activity
 
   - **GET** `/recommend?city={city}`
@@ -67,6 +75,11 @@ To run this project locally, follow these steps:
   - **Parameters**:
     - `city` (required): The name of the city to get weather data for.
   - **Response**:
+  ```json
+  {
+    "activity": "Hiking through the nearest nature trail"
+  }
+  ```
 ### Weather Forecast
 
   - **GET** `/weather/forecast?city={city}&days={days}`
@@ -75,6 +88,16 @@ To run this project locally, follow these steps:
     - `city` (required): The name of the city.
     - `days` (optional): The number of forecast days (default is 3).
   - **Response**:
+  ```json
+  {
+      "city": "London",
+      "forecast": [
+          {"date": "2024-10-17", "weather": "sunny"},
+          {"date": "2024-10-18", "weather": "rainy"},
+          ...
+      ]
+  }
+  ```
 ### Get Activities
 
   - **GET** `/activities?weather={weather}&type={type}&limit={limit}`
@@ -84,6 +107,15 @@ To run this project locally, follow these steps:
     - `type` (optional): The type of activity (e.g., indoor, outdoor).
     - `limit` (optional): Maximum number of activities to return.
   - **Response**:
+  ```json
+  {
+      "activities": [
+          "Picnic in the park",
+          "Cycling along the river",
+          ...
+      ]
+  }
+  ```
 ### Random Activity
 
   - **GET** `/activities/random?weather={weather}&type={type}`
@@ -92,6 +124,13 @@ To run this project locally, follow these steps:
     - `weather` (optional): The weather condition (e.g., sunny, rainy).
     - `type` (optional): The type of activity (e.g., indoor, outdoor).
   - **Response**:
+  ```json
+  {
+      "activity": "Indoor yoga session",
+      "weather": "rainy",
+      "type": "indoor"
+  }
+  ```
 ### Get Weather
 
   - **GET** `/weather?city={city}`
@@ -99,6 +138,13 @@ To run this project locally, follow these steps:
   - **Parameters**:
     - `city` (required): The name of the city.
   - **Response**:
+  ```json
+  {
+      "city": "New York",
+      "weather": "clear",
+      "temperature": 22
+  }
+  ```
 ### Activity Search
 
   - **GET** `/activities/search?activity={activity}&type={type}`
@@ -107,6 +153,14 @@ To run this project locally, follow these steps:
     - `activity` (required): The activity name or keyword.
     - `type` (optional): The type of activity (indoor/outdoor).
   - **Response**:
+  ```json
+  {
+      "activities": [
+          "Mountain Biking",
+          "Road Cycling"
+      ]
+  }
+  ```
 ### Geocoding
 
   - **GET** `/geocoding?city={city}`
@@ -114,23 +168,65 @@ To run this project locally, follow these steps:
   - **Parameters**:
     - `city` (required): The name of the city.
   - **Response**:
+  ```json
+  {
+      "city": "Paris",
+      "latitude": 48.8566,
+      "longitude": 2.3522
+  }
+  ```
 ### Add Activity
 
   - **POST** `/activities/add`
   - Adds a new activity to the database.
   - **Request Body**:
+  ```json
+  {
+      "weather": "sunny",
+      "type": "outdoor",
+      "activity": "Beach Volleyball"
+  }
+  ```
   - **Response**:
+  ```json
+  {
+      "message": "Activity added successfully"
+  }
+  ```
 ### Remove Activity
 
   - **DELETE** `/activities/remove`
   - Removes an activity from the database.
   - **Request Body**:
+  ```json
+  {
+      "weather": "sunny",
+      "type": "outdoor",
+      "activity": "Beach Volleyball"
+  }
+  ```
   - **Response**:
+  ```json
+  {
+      "message": "Activity removed successfully"
+  }
+  ```
 ## Curl Command Examples
 You can test the API using `curl` commands. Here are some examples:
   - **Welcome Message**:
+  ```bash
+  curl -X GET http://bmworks.tech:5000
+  ```
   - **Recommend Activity**:
+  ```bash
+  curl -X GET "http://bmworks.tech:5000/recommend?city=London"
+  ```
   - **Add Activity**:For a full list of curl commands, refer to the [Curl Command Examples](#curl-command-examples) section.
+  ```bash
+  curl -X POST http://bmworks.tech/activities/add \
+  -H "Content-Type: application/json" \
+  -d '{"weather": "sunny", "type": "outdoor", "activity": "Beach Volleyball"}'
+  ```
 ## Technologies Used
 
   - **Flask**: Python micro web framework for building the API.
