@@ -175,7 +175,7 @@ JSON_DATA='{
   }
 }'
 
-sudo apt update && apt install mongodb-org redis-server -y
+sudo apt update && apt install mongodb-org redis-server python3 python3-pip -y
 
 MONGO_URI="mongodb://localhost:27017"
 DB_NAME="weather_db"
