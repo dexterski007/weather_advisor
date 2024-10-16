@@ -175,7 +175,17 @@ JSON_DATA='{
   }
 }'
 
-sudo apt update && apt install mongodb-org redis-server python3 python3-pip -y
+sudo apt update && apt install gnupg curl redis-server python3 python3-pip python3-venv -y
+curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | \
+   sudo gpg -o /usr/share/keyrings/mongodb-server-8.0.gpg \
+   --dearmor
+echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg ] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/8.0 main" | sudo tee /etc/apt/sources.list.d/mongodb-org-8.0.list
+
+sudo apt-get update && sudo apt-get install -y mongodb-org
+sudo systemctl enable mongod
+sudo systemctl start mongod
+
+
 
 MONGO_URI="mongodb://localhost:27017"
 DB_NAME="weather_db"
@@ -192,4 +202,3 @@ else
     echo "Error: Failed to import data into MongoDB"
     exit 1
 fi
-
